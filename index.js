@@ -74,13 +74,13 @@ function isAuthenticate(req, res, next) {
     const token = req.cookies['token']
     if (token === null) {
         req.flash('info', 'please login')
-        res.redirect('/login')
+        res.redirect('/project/authenticationdemo/login')
         return
     }
     jwt.verify(token, 'shhhhh', (err, user) => {
         if (err) {
             req.flash('info', 'login fail')
-            res.redirect('/login')
+            res.redirect('/project/authenticationdemo/login')
             return
         }
         req.user = user
@@ -108,12 +108,12 @@ app.post('/register', checkSchema(loginValidateSchema),async (req, res) => {
          if(!validationErreor.isEmpty()){
             const result2 = validationErreor.formatWith(error => error.msg);
             req.flash('info', result2.array())
-            res.redirect('/register')
+            res.redirect('/project/authenticationdemo/register')
             return
          }
         if (!password && !email) {
             req.flash('info', 'provide email and password')
-            res.redirect('/register')
+            res.redirect('/project/authenticationdemo/register')
             return
         }
 
@@ -121,9 +121,9 @@ app.post('/register', checkSchema(loginValidateSchema),async (req, res) => {
 
         if (isExist) {
             req.flash('info', 'email already exist')
-            res.redirect('/register')
+            res.redirect('/project/authenticationdemo/register')
             return
-        } else {
+        } else {x
             const hashPAssword = await bcrypt.hash(password, saltRounds)
             const newUser = new userModel({
                 email: email,
@@ -144,11 +144,11 @@ app.post('/register', checkSchema(loginValidateSchema),async (req, res) => {
             // const mail = await sendMail(mailOption)
             // console.log('mail'.mail)
             req.flash('info', 'registered successfully')
-            res.redirect('/login')
+            res.redirect('/project/authenticationdemo/login')
         }
     } catch (err) {
         req.flash('info', `register error ${err}`)
-        res.redirect('/register')
+        res.redirect('/project/authenticationdemo/register')
     }
 })
 
@@ -199,28 +199,28 @@ app.post('/login', async (req, res) => {
     try {
         if(!password && !email){
             req.flash('info', 'enter email and password ')
-            res.redirect('/login')
+            res.redirect('/project/authenticationdemo/login')
             return;
         }
         const isExistUser = await userModel.findOne({ email:email }).exec()
         if (!isExistUser) {
             req.flash('info', 'email and password not match')
-            res.redirect('/login')
+            res.redirect('/project/authenticationdemo/login')
             return;
         } else {
             const isPasswordMatch = await bcrypt.compare(password, isExistUser.password)
             if (!isPasswordMatch) {
                 req.flash('info', 'email and password not match')
-                res.redirect('/login')
+                res.redirect('/project/authenticationdemo/login')
                 return;
             }
             const accessToken = jwt.sign({ email: isExistUser.email }, 'shhhhh')
             res.cookie('token', accessToken)
-            res.redirect('/procted')
+            res.redirect('/project/authenticationdemo/procted')
         }
     } catch (err) {
         req.flash('info', `login error ${err}`)
-        res.redirect('/login')
+        res.redirect('/project/authenticationdemo/login')
     }
 })
 
@@ -248,30 +248,30 @@ app.get('/resendverifylink', (req, res) => {
    </html>`)
 })
 
-app.post('/resendverifylink', async (req, res) => {
-    const { email } = req.body
-    try {
-        const existUser = await userModel.findOne({ email: req.body.email }).exec()
-        if (!existUser) {
-            return res.json({ message: `user not exist` })
-        }
-        let generateToken = crypto.randomBytes(64).toString('hex')
-        await new tokenModel({
-            _id: existUser._id,
-            token: generateToken
-        }).save()
-        const link = `${req.protocol}://${req.get('host')}/verifyemail?token=${generateToken}&id=${existUser._id}`
-        var mailOption = {
-            to: existUser.email,
-            subject: "verify email",
-            html: `<p>verify email link : <a href=${link}> ${link} </a> </p>`
-        }
-        const mail = await sendMail(mailOption)
-        console.log('mail'.mail)
-    } catch (err) {
-        res.json({ message: `error ${err}` })
-    }
-})
+// app.post('/resendverifylink', async (req, res) => {
+//     const { email } = req.body
+//     try {
+//         const existUser = await userModel.findOne({ email: req.body.email }).exec()
+//         if (!existUser) {
+//             return res.json({ message: `user not exist` })
+//         }
+//         let generateToken = crypto.randomBytes(64).toString('hex')
+//         await new tokenModel({
+//             _id: existUser._id,
+//             token: generateToken
+//         }).save()
+//         const link = `${req.protocol}://${req.get('host')}/project/authenticationdemo/verifyemail?token=${generateToken}&id=${existUser._id}`
+//         var mailOption = {
+//             to: existUser.email,
+//             subject: "verify email",
+//             html: `<p>verify email link : <a href=${link}> ${link} </a> </p>`
+//         }
+//         const mail = await sendMail(mailOption)
+//         console.log('mail'.mail)
+//     } catch (err) {
+//         res.json({ message: `error ${err}` })
+//     }
+// })
 
 app.get('/forgetpassword', (req, res) => {
     res.send(forgotPassword(req.flash('info')))
@@ -282,13 +282,13 @@ app.post('/forgetpassword', async (req, res) => {
     try {
         if (!email) {
             req.flash('info', 'provide valid email')
-            res.redirect('/forgetpassword')
+            res.redirect('/project/authenticationdemo/forgetpassword')
             return
         } else {
             const user = await userModel.findOne({ email }).exec()
             if (!user) {
                 req.flash('info', 'User not found')
-                res.redirect('/forgetpassword')
+                res.redirect('/project/authenticationdemo/forgetpassword')
                 return
             }
             let token = await tokenModel.findOne({ _id: user._id }).exec()
@@ -300,7 +300,7 @@ app.post('/forgetpassword', async (req, res) => {
                 _id: user._id,
                 token: generateToken
             }).save()
-            const link = `${req.protocol}://${req.get('host')}/password-reset?token=${generateToken}&id=${user._id}`
+            const link = `${process.env.HOST}project/authenticationdemo/password-reset?token=${generateToken}&id=${user._id}`
             var mailOption = {
                 to: user.email,
                 subject: "reset password",
@@ -308,11 +308,11 @@ app.post('/forgetpassword', async (req, res) => {
             }
             var mail = await sendMail(mailOption)
 
-            res.redirect('/forgetpassword/info')
+            res.redirect('/project/authenticationdemo/forgetpassword/info')
         }
     } catch (err) {
         req.flash('info', `forgot password error ${err}`)
-        res.redirect('/forgetpassword')
+        res.redirect('/project/authenticationdemo/forgetpassword')
     }
 })
 
@@ -327,22 +327,22 @@ app.post('/password-reset', async (req, res) => {
     try {
         if (!password) {
             req.flash('info', 'password not provide')
-            res.redirect('/password-reset')
+            res.redirect('/project/authenticationdemo/password-reset')
             return
         }
         const passwordResetToken = await tokenModel.findOne({ _id: id, token }).lean()
         if (!passwordResetToken) {
             req.flash('info', 'expire link')
-            res.redirect('/password-reset')
+            res.redirect('/project/authenticationdemo/password-reset')
             return
         }
         const hashPAssword = await bcrypt.hash(password, saltRounds)
         await userModel.findByIdAndUpdate({ _id: id }, { $set: { password: hashPAssword } }).exec();
         await tokenModel.deleteOne({ user_id: id })
-        res.redirect('/login')
+        res.redirect('/project/authenticationdemo/login')
     } catch (err) {
         req.flash('info', `password reset error : ${err}`)
-        res.redirect('/password-reset')
+        res.redirect('/project/authenticationdemo/password-reset')
     }
 
 })

@@ -5,10 +5,16 @@ export default (message)=> `
       <meta charset="utf-8">
    </head>   
 <body>
+<nav>
+<ul style="list-style-type: none;">
+<li style ="display:inline"><a style ="color:green"href="/project/authenticationdemo/register">Registration</a></li>
+<li style ="display:inline"><a href="/project/authenticationdemo/login">Login</a></li>
+</ul>
+</nav>
 
 <h2>HTML Forms</h2>
 
-<form action="/register" method="post">
+<form action="/project/authenticationdemo/register" method="post">
   <label for="fname">Email:</label><br>
   <input type="email" id="fname" name="email" ><br>
   <label for="lname">password:</label><br>
