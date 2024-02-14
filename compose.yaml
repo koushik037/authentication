@@ -13,4 +13,3 @@ services:
       MONGOURL: mongodb://127.0.0.1:27017/user  
     depends_on:
      - db  
- 

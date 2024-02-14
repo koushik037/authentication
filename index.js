@@ -9,6 +9,8 @@ import "dotenv/config.js"
 import flash from 'connect-flash'
 import cookieParser from "cookie-parser";
 import session from "express-session";
+import {validationResult,checkSchema} from 'express-validator'
+
 import sendMail from './emailConfig.js'
 import loginForm from './template/loginForm.js'
 import registerForm from "./template/registerForm.js";
@@ -21,7 +23,6 @@ const app = express()
 
 const port = process.env.PORT || 3551
 const mongoUrl = process.env.MONGOURL || 'mongodb://127.0.0.1:27017/user'
-console.log('mongourl',mongoUrl)
 const saltRounds = 10;
 app.use(cookieParser());
 app.use(session({
@@ -47,6 +48,27 @@ mongoose.connection.on('connected', () => console.log('server connected'))
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
+const loginValidateSchema = {
+    email: {
+        isEmail: {
+            errorMessage: 'Must be a valid e-mail address',
+        },
+        isLength: {
+            options: { max: 30 },
+        },
+        trim: true
+    },
+    password: {
+        // exists: {
+        //     errorMessage: "password is required"
+        // },
+        isLength: {
+            options: { min: 4, max: 12 },
+            errorMessage: 'The password must be at least 4 characters',
+        },
+        trim: true
+    }
+}
 
 function isAuthenticate(req, res, next) {
     const token = req.cookies['token']
@@ -76,17 +98,25 @@ app.get('/register', (req, res) => {
     res.send(registerForm(req.flash('info')))
 })
 
-app.post('/register', async (req, res) => {
+app.post('/register', checkSchema(loginValidateSchema),async (req, res) => {
     // valid email id
     // password must be 8 character long
     // first database condition : check email already exist or not
     const { password, email } = req.body
+    const validationErreor = validationResult(req)
     try {
+         if(!validationErreor.isEmpty()){
+            const result2 = validationErreor.formatWith(error => error.msg);
+            req.flash('info', result2.array())
+            res.redirect('/register')
+            return
+         }
         if (!password && !email) {
             req.flash('info', 'provide email and password')
             res.redirect('/register')
             return
         }
+
         const isExist = await userModel.findOne({ email: req.body.email }).exec()
 
         if (isExist) {
@@ -167,17 +197,18 @@ app.get('/login', (req, res) => {
 app.post('/login', async (req, res) => {
     const { password, email } = req.body
     try {
-        const isExistUser = await userModel.findOne({ email: req.body.email }).exec()
+        if(!password && !email){
+            req.flash('info', 'enter email and password ')
+            res.redirect('/login')
+            return;
+        }
+        const isExistUser = await userModel.findOne({ email:email }).exec()
         if (!isExistUser) {
             req.flash('info', 'email and password not match')
             res.redirect('/login')
             return;
         } else {
-            if (isExistUser.isVerified == false) {
-                return res.redirect('/resendverifylink')
-            }
             const isPasswordMatch = await bcrypt.compare(password, isExistUser.password)
-
             if (!isPasswordMatch) {
                 req.flash('info', 'email and password not match')
                 res.redirect('/login')
@@ -191,6 +222,11 @@ app.post('/login', async (req, res) => {
         req.flash('info', `login error ${err}`)
         res.redirect('/login')
     }
+})
+
+app.get('/logout', (req, res) => {
+    res.clearCookie('token')
+    res.send(`<h3>you are log out<h3>`)
 })
 
 app.get('/resendverifylink', (req, res) => {
@@ -315,8 +351,4 @@ app.get('/forgetpassword/info', (req, res) => {
     res.send(`<h3>check your email</h3>`)
 })
 
-app.get('/logout', (req, res) => {
-    res.clearCookie('token')
-    res.send(`<h3>you are log out<h3>`)
-})
 app.listen(port, console.log(`server start at port ${port}`))
